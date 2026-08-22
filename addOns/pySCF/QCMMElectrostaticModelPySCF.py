@@ -9,6 +9,19 @@ try:
 except:
     raise NotInstalledError ( "numpy not installed." )
 
+try:
+    import cupy
+    def _AsNumpy ( array ):
+        """gpu4pyscf's mean-field objects (target.qcState.mf when useGPU is
+        set on QCModelPySCF) return cupy (GPU-resident) arrays from methods
+        like mm_mol.atom_coords()/make_rdm1(); the rest of this module does
+        plain numpy math, so bring anything cupy back to host memory first.
+        A no-op for regular pyscf's numpy arrays."""
+        return cupy.asnumpy ( array ) if isinstance ( array, cupy.ndarray ) else array
+except ImportError:
+    def _AsNumpy ( array ):
+        return array
+
 #===================================================================================================================================
 # . Class.
 #===================================================================================================================================
@@ -22,34 +35,21 @@ class QCMMElectrostaticModelPySCF ( QCMMElectrostaticModel ):
         # . gradients3B/M are handled by NBModel.PairwiseInteraction* in pyrex/csource.
         # . The gradients are in atomic units!
         if target.scratch.doGradients:
-               coords     = target.qcState.mf.mm_mol.atom_coords()
-               charges    = target.qcState.mf.mm_mol.atom_charges()
-               qm_coords  = target.qcState.mole.atom_coords()
-               qm_charges = target.qcState.mole.atom_charges()
-               dmi        = target.qcState.mf.make_rdm1()
+               dmi        = target.qcState.mf.make_rdm1 ( )
                if len(dmi.shape) > 2: 
                    dm = dmi[0] + dmi[1] # . Unrestricted/RestrictedOpen-shell DM, so we sum alpha and beta contribs.
                else: 
                    dm = dmi
-               # . PySCF does not calculate gradients at the MM centers.
-               # . From pyscf/examples/qmmm/30-force_on_mm_particles.py, Author: Qiming Sun <osirpt.sun@gmail.com>
-               # . Gradient from the interaction between QM atoms and MM particles
-               # \sum_K d/dR (1/|r_K-R|) = \sum_K (r_K-R)/|r_K-R|^3
-               dr = qm_coords[:,None,:] - coords
-               r  = numpy.linalg.norm(dr, axis=2)
-               g  = numpy.einsum('r,R,rRx,rR->Rx', qm_charges, charges, dr, r**-3)
+               # . Use PySCF's blocked MM-center gradient implementation.
+               #   The former scalar loop evaluated one integral per MM center
+               #   and dominated relaxed PES calculations for large systems.
+               #   Both PySCF and GPU4PySCF expose these two methods; the GPU
+               #   implementation returns the contracted result on the host.
+               gradientModel = target.qcState.mf.nuc_grad_method ( )
+               g = _AsNumpy ( gradientModel.grad_hcore_mm ( dm ) )
+               g += _AsNumpy ( gradientModel.grad_nuc_mm ( ) )
 
-               # . Gradient from the interaction between electron density and MM particles
-               # d/dR <i| (1/|r-R|) |j> = <i| d/dR (1/|r-R|) |j> = <i| -d/dr (1/|r-R|) |j>
-               #   = <d/dr i| (1/|r-R|) |j> + <i| (1/|r-R|) |d/dr j>
-               for i, q in enumerate(charges):
-                   with target.qcState.mole.with_rinv_origin(coords[i]):
-                       v = target.qcState.mole.intor('int1e_iprinv')
-                   f =(numpy.einsum('ij,xji->x', dm, v) +
-                       numpy.einsum('ij,xij->x', dm, v.conj())) * -q
-                   g[i] += f
-
-               n = len (coords)
+               n = len (g)
                if n > 0:
                   factor      = Units.Length_Angstroms_To_Bohrs * Units.Energy_Hartrees_To_Kilojoules_Per_Mole
                   gradients3B = target.scratch.Get ( "bpGradients3", None )
