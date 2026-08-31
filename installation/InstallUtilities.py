@@ -716,11 +716,19 @@ def WriteShellFile ( inPath, outPath, variables, report ):
     outFile.close ( )
     report["Shell Files"] += 1
 
+def _ExistingExecutablePath ( *paths ):
+    """Return the first existing executable path."""
+    for path in paths:
+        if ( path is not None ) and os.path.isfile ( path ) and os.access ( path, os.X_OK ):
+            return path
+    return None
+
 def WriteShellFiles ( report, parameters = None, scratch = None ):
     """Write shell files containing the environment variables needed by pDynamo."""
     # . Get all required paths.
     # . Root.
     pDynamoHome = os.getenv ( _PDynamoHome )
+    softwareHome = os.path.dirname ( pDynamoHome )
     # . Parameters and scratch.
     if parameters is None: parameters = "$PDYNAMO3_HOME/parameters"
     if scratch    is None: scratch    = "$PDYNAMO3_HOME/scratch"
@@ -730,13 +738,23 @@ def WriteShellFiles ( report, parameters = None, scratch = None ):
     tokens     = [ token for token in pythonPath.split ( ":" ) if token.upper ( ).find ( "PDYNAMO" ) < 0 ]
     tokens.append ( "$PDYNAMO3_HOME" )
     pythonPath = ":".join ( tokens )
+    # . External program commands.
+    orcaCommand = _ExistingExecutablePath ( os.getenv ( "PDYNAMO3_ORCACOMMAND" ) ,
+                                            os.path.join ( softwareHome, "orca_6_0_0"  , "orca" ) ,
+                                            os.path.join ( softwareHome, "orca_local"   , "orca" ) )
+    xtbCommand  = _ExistingExecutablePath ( os.getenv ( "PDYNAMO3_XTBCOMMAND"  ) ,
+                                            os.path.join ( softwareHome, "xtb-6.7.1"   , "bin", "xtb" ) ,
+                                            os.path.join ( softwareHome, "xtb"         , "bin", "xtb" ) )
+    if orcaCommand is None: orcaCommand = "$HOME/programs/orca_local/orca"
+    if xtbCommand  is None: xtbCommand  = "$HOME/programs/xtb-6.7.1/bin/xtb"
     # . Write the shell files.
-    variables       = { "orcaCommand"   : "$HOME/programs/orca_local/orca" , # . A guess.
+    variables       = { "orcaCommand"   : orcaCommand ,
                         "parameters"    : parameters  ,
                         "pDynamoHome"   : pDynamoHome ,
                         "pythonCommand" : "python3"   ,
                         "pythonPath"    : pythonPath  ,
-                        "scratch"       : scratch     }
+                        "scratch"       : scratch     ,
+                        "xtbCommand"    : xtbCommand  }
     shellScriptPath = os.path.join ( pDynamoHome, "installation", _ShellScriptPath )
     templatePath    = os.path.join ( pDynamoHome, "installation", _TemplatePath    )
     WriteShellFile ( os.path.join ( templatePath, "environment_bash.tmpl"   ), os.path.join ( shellScriptPath, "environment_bash.com"   ), variables, report )

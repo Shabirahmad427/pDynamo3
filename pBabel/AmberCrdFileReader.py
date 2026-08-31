@@ -17,10 +17,6 @@ _NATOMSWIDTH = 6
 _XYZNUMBER =  6
 _XYZWIDTH  = 12
 
-# . The symmetry width.
-_SYMMETRYNUMBER =  3
-_SYMMETRYWIDTH  = 12
-
 #===================================================================================================================================
 # . AmberCrd file reader class.
 #===================================================================================================================================
@@ -34,6 +30,7 @@ class AmberCrdFileReader ( TextFileReader ):
         if not self.isParsed:
             # . Initialization.
             if LogFileActive ( log ): self.log = log
+            self.symmetryParameters = None
             # . Open the file.
             self.Open ( )
             try:
@@ -47,10 +44,16 @@ class AmberCrdFileReader ( TextFileReader ):
                 self.xyz = Coordinates3.WithExtent ( natoms )
                 for n in range ( natoms ):
                     for i in range ( 3 ): self.xyz[n,i] = items[3*n+i]
-                # . Symmetry data - optional.
-                items = self.GetFixedFormatArray ( 3, _SYMMETRYNUMBER, _SYMMETRYWIDTH, converter = float, default = 0.0, signalWarnings = False )
-                self.symmetryParameters = SymmetryParameters ( )
-                self.symmetryParameters.SetCrystalParameters ( items[0], items[1], items[2], 90.0, 90.0, 90.0 )
+                # . Symmetry data - optional. AMBER restart files normally
+                # . contain a, b, c, alpha, beta and gamma. Older pDynamo CRD
+                # . files can contain lengths only, in which case orthogonal
+                # . angles are retained for backward compatibility.
+                line  = self.GetLine ( signalWarnings = False )
+                items = [ float ( item ) for item in line.split ( ) ]
+                if len ( items ) in ( 3, 6 ):
+                    if len ( items ) == 3: items.extend ( [ 90.0, 90.0, 90.0 ] )
+                    self.symmetryParameters = SymmetryParameters ( )
+                    self.symmetryParameters.SetCrystalParameters ( *items )
             except EOFError:
                 pass
             # . Close the file.

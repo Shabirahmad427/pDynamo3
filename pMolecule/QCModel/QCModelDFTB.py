@@ -81,8 +81,12 @@ class QCModelDFTBState ( QCModelState ):
     """A QC model state."""
 
     _attributable = dict ( QCModelState._attributable )
-    _attributable.update ( { "deleteJobFiles" : True , 
+    _attributable.update ( { "deleteJobFiles" : True ,
                              "paths"          : None } )
+
+    def AddFockModel ( self, key, value ):
+        """No-op: DFTB+ handles QC/MM electrostatics via external point charges, not Fock matrix."""
+        pass
 
     def __del__ ( self ):
         """Deallocation."""

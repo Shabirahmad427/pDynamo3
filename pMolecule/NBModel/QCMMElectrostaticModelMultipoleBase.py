@@ -37,7 +37,7 @@ class QCMMElectrostaticModelMultipoleBase ( QCMMElectrostaticModel ):
         # . derivatives of the overlap matrix. These terms are conveniently added in
         # . here to avoid calculating the overlap derivatives twice.
         closures = super ( QCMMElectrostaticModelMultipoleBase, self ).EnergyClosures ( target )
-        if hasattr ( target.qcModel.multipoleEvaluator, "WeightedDensity" ):
+        if hasattr ( target.qcModel, "multipoleEvaluator" ) and hasattr ( target.qcModel.multipoleEvaluator, "WeightedDensity" ):
            def a ( ): self.GetWeightedDensity ( target )
            closures.append ( ( EnergyClosurePriority.QCPreGradients, a, "QC/MM Weighted Density" ) )
         return closures

@@ -105,6 +105,11 @@ cdef class UpdateChecker:
         sNode = scratch.Get ( _PairListStatistics )
         sNode[_NumberOfCalls] += 1
         if doUpdate:
+            # . Release the owned pair-list wrappers before removing their
+            # . storage node. The local pNode reference otherwise keeps the
+            # . node alive until this Cython method returns and, for large
+            # . repeatedly rebuilt lists, the native allocations are retained.
+            pNode.Clear ( )
             scratch.Delete ( _UpdatablePairLists )
             sNode[_NumberOfUpdates] += 1
             coordinates3.CopyTo ( rCoordinates3 )

@@ -47,3 +47,9 @@ from .QCModelORCA                import _ORCACommand                            
                                         QCModelORCA
 from .QCOnePDM                   import QCOnePDM
 from .QCOrbitals                 import QCOrbitals
+from .QCModelXTB                 import _XTBCommand                                       , \
+                                        QCModelXTB
+
+# Added by EasyHybrid installer: external QC module
+from .QCModelXTB import _XTBCommand, \
+                                        QCModelXTB

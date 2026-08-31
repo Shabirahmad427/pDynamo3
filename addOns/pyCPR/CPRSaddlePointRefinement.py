@@ -311,7 +311,10 @@ class CPRSaddlePointRefinement ( MultiDimensionalMinimizer ):
                  self.lineSearcher.maximize = False
             self.LineSearch (state)            
         except Exception as error:
-            state.error = error.args[0]
+            # . Coerce to str: args[0] is not always a string (e.g. an
+            # . errno int), and that used to crash "... + state.error"
+            # . concatenations elsewhere with a TypeError.
+            state.error = str ( error.args[0] ) if error.args else str ( error )
             import traceback, sys
             traceback.print_exc (file=sys.stdout)
         state.numberOfIterations += 1

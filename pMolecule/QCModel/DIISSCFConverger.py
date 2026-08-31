@@ -159,7 +159,10 @@ class DIISSCFConvergerState ( AttributableObject ):
 
     def HandleError ( self, error ):
         """Handle an error."""
-        self.error = error.args[0]
+        # . Coerce to str: args[0] is not always a string (e.g. an errno
+        # . int), and that used to crash "... + self.error" concatenations
+        # . elsewhere with a TypeError, masking the real error.
+        self.error = str ( error.args[0] ) if error.args else str ( error )
         if self.printTraceback: traceback.print_exc ( file = sys.stdout )
 
 #===================================================================================================================================

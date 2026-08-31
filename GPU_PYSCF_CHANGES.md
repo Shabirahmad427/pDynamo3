@@ -70,19 +70,18 @@ has not yet been recorded.
 
 ## Environment and activation
 
-The GPU environment is separate from the regular pDynamo environment:
+CPU and GPU calculations use the same stable pDynamo environment:
 
-- Conda environment: `/home/shabir/miniconda3/envs/pdynamo3-gpu-test`
+- Conda environment: `/home/shabir/software/envs/pdynamo3`
 - Python: 3.10.20
 - PySCF: 2.14.0
 - GPU4PySCF: 1.8.1
-- CuPy: 14.1.1
-- NumPy: 2.2.6
-- Activation script: `/home/shabir/software/activate_pdynamo3_gpu.sh`
+- CuPy: 13.6.0
+- NumPy: 1.26.4
+- Activation script: `/home/shabir/software/activate_pdynamo3.sh`
 
-The activation script changes the Conda environment but keeps
-`PDYNAMO3_HOME=/home/shabir/software/pDynamo3`. There is no separate GPU
-source tree used by this command.
+There is no separate GPU activation, environment, or source tree. Set
+`useGPU=True` on `QCModelPySCF` to select the GPU backend.
 
 ## Production-sized benchmark: blocked PySCF MM-center gradients
 
@@ -180,3 +179,32 @@ the median of repeated measurements.
 - GPU arrays are copied to host memory where pDynamo requires CPU-side data.
 - GPU acceleration is expected to depend strongly on calculation size; no
   general speedup factor is claimed here.
+
+## Final unified-installation validation (2026-08-31)
+
+CPU and GPU calculations now use the single stable environment
+`/home/shabir/software/envs/pdynamo3`, activated with `activate_pdynamo3`.
+The environment contains NumPy 1.26.4, SciPy 1.15.3, PySCF 2.14.0,
+CuPy 13.6.0, GPU4PySCF 1.8.1, and cuTENSOR 2.6.0. `pip check` reports no
+broken requirements, and CuPy detects the NVIDIA GeForce RTX 4060 Ti.
+
+Numerical validation used pDynamo's `QCModelPySCF` on H2 with RHF/STO-3G:
+
+- CPU (`useGPU=False`): `-2932.051561066158 kJ mol-1`.
+- GPU (`useGPU=True`): `-2932.051561066207 kJ mol-1`.
+- Absolute difference: `4.957e-11 kJ mol-1`.
+
+The official `examples/book/Example1.py` CPU test completed successfully.
+
+The useful change from the former `pDynamo3_pairlist_fix` experiment was
+merged into the main tree at
+`pMolecule/NBModel/__extensions__/pyrex/pMolecule.NBModel.UpdateChecker.pyx`.
+Before deleting an updatable pair-list scratch node, `pNode.Clear()` now
+releases its owned native pair-list wrappers. `pMolecule.NBModel` was
+regenerated with Cython 3.2.5 and all nine extensions rebuilt successfully.
+The official `NBModelCutOffCentering.py` regression then completed with 11
+calls, 11 updates, and a maximum energy deviation of `0.00000`.
+
+The obsolete GPU-test, standalone GPU4PySCF, batched-pDynamo, and
+pairlist-fix environments/source trees were removed only after the unified
+tree passed these checks.

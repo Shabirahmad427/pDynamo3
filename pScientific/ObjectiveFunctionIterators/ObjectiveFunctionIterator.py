@@ -54,7 +54,12 @@ class ObjectiveFunctionIteratorState ( AttributableObject ):
 
     def HandleError ( self, error ):
         """Handle an error."""
-        self.error = error.args[0]
+        # . args[0] is not always a string (e.g. OSError's args[0] is an
+        # . errno int), which used to crash the "... + state.error" string
+        # . concatenations done later in Continue () with a TypeError that
+        # . masked the real error. Coerce to str here so the actual error
+        # . message is always reported instead.
+        self.error = str ( error.args[0] ) if error.args else str ( error )
         if self.printTraceback: traceback.print_exc ( file = sys.stdout )
 
     def SetUp ( self ):

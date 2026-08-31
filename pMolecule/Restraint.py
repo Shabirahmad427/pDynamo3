@@ -186,9 +186,10 @@ class RestraintAngleDotProduct ( Restraint ):
         if ( self.point1 in selection ) and \
            ( self.point2 in selection ) and \
            ( self.point3 in selection ):
-            pruned = self.__class__ ( selection.Position ( self.point1 ), \
-                                      selection.Position ( self.point2 ), \
-                                      selection.Position ( self.point3 ), Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( point1 = selection.Position ( self.point1 ), \
+                                                  point2 = selection.Position ( self.point2 ), \
+                                                  point3 = selection.Position ( self.point3 ), \
+                                                  energyModel = Clone ( self.energyModel ) )
         return pruned
 
 #-----------------------------------------------------------------------------------------------------------------------------------
@@ -277,10 +278,11 @@ class RestraintDihedral ( Restraint ):
            ( self.point2 in selection ) and \
            ( self.point3 in selection ) and \
            ( self.point4 in selection ):
-            pruned = self.__class__ ( selection.Position ( self.point1 ), \
-                                      selection.Position ( self.point2 ), \
-                                      selection.Position ( self.point3 ), \
-                                      selection.Position ( self.point4 ), Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( point1 = selection.Position ( self.point1 ), \
+                                                  point2 = selection.Position ( self.point2 ), \
+                                                  point3 = selection.Position ( self.point3 ), \
+                                                  point4 = selection.Position ( self.point4 ), \
+                                                  energyModel = Clone ( self.energyModel ) )
         return pruned
 
 #-----------------------------------------------------------------------------------------------------------------------------------
@@ -323,8 +325,9 @@ class RestraintDistance ( Restraint ):
         pruned = None
         if ( self.point1 in selection ) and \
            ( self.point2 in selection ):
-            pruned = self.__class__ ( selection.Position ( self.point1 ), \
-                                      selection.Position ( self.point2 ), Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( point1 = selection.Position ( self.point1 ), \
+                                                  point2 = selection.Position ( self.point2 ), \
+                                                  energyModel = Clone ( self.energyModel ) )
         return pruned
 
 #-----------------------------------------------------------------------------------------------------------------------------------
@@ -373,7 +376,7 @@ class RestraintMultipleDistance ( Restraint ):
             distances.append ( ( point1 + indexIncrement, point2 + indexIncrement, weight ) )
         # . Create object.
         if len ( distances ) > 0:
-            new = self.__class__ ( distances, Clone ( self.energyModel ) )
+            new = self.__class__.WithOptions ( distances = distances, energyModel = Clone ( self.energyModel ) )
         return new
 
     def Prune ( self, selection ):
@@ -386,7 +389,7 @@ class RestraintMultipleDistance ( Restraint ):
                 reduced.append ( ( selection.Position ( point1 ), selection.Position ( point2 ), weight ) )
         # . Create object.
         if len ( reduced ) > 0:
-            pruned = self.__class__ ( reduced, Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( distances = reduced, energyModel = Clone ( self.energyModel ) )
         return pruned
 
 #-----------------------------------------------------------------------------------------------------------------------------------
@@ -429,9 +432,9 @@ class RestraintMultipleTether ( Restraint ):
     def Merge ( self, indexIncrement ):
         """Merging."""
         indices = [ i + indexIncrement for i in self.selection ]
-        return self.__class__ ( Selection.FromIterable ( indices ) ,
-                                        Clone ( self.reference   ) ,
-                                        Clone ( self.energyModel ) )
+        return self.__class__.WithOptions ( selection   = Selection.FromIterable ( indices ) ,
+                                           reference   = Clone ( self.reference   ) ,
+                                           energyModel = Clone ( self.energyModel ) )
         return new
 
     def Prune ( self, selection ):
@@ -440,7 +443,9 @@ class RestraintMultipleTether ( Restraint ):
         # . Get reduced selection.
         reduced = self.selection.Prune ( selection )
         if len ( reduced ) > 0:
-            pruned = self.__class__ ( reduced, self.reference.Prune ( selection ), Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( selection   = reduced ,
+                                                 reference   = self.reference.Prune ( selection ) ,
+                                                 energyModel = Clone ( self.energyModel ) )
         return pruned
 
 #-----------------------------------------------------------------------------------------------------------------------------------
@@ -550,10 +555,11 @@ class RestraintOutOfPlaneBend ( Restraint ):
            ( self.point2 in selection ) and \
            ( self.point3 in selection ) and \
            ( self.point4 in selection ):
-            pruned = self.__class__ ( selection.Position ( self.point1 ), \
-                                      selection.Position ( self.point2 ), \
-                                      selection.Position ( self.point3 ), \
-                                      selection.Position ( self.point4 ), Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( point1 = selection.Position ( self.point1 ), \
+                                                  point2 = selection.Position ( self.point2 ), \
+                                                  point3 = selection.Position ( self.point3 ), \
+                                                  point4 = selection.Position ( self.point4 ), \
+                                                  energyModel = Clone ( self.energyModel ) )
         return pruned
 
 #-----------------------------------------------------------------------------------------------------------------------------------
@@ -595,7 +601,9 @@ class RestraintTether ( Restraint ):
         """Pruning."""
         pruned = None
         if self.point in selection:
-            pruned = self.__class__ ( selection.Position ( self.point ), Clone ( self.origin ), Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( point = selection.Position ( self.point ), \
+                                                 origin = Clone ( self.origin ), \
+                                                 energyModel = Clone ( self.energyModel ) )
         return pruned
 
 
@@ -699,10 +707,13 @@ class RestraintMCEC ( Restraint ):
         pruned = None
         if ( self.donor    in selection ) and \
            ( self.acceptor in selection ):
-            pruned = self.__class__ ( ( selection.Position ( self.donor ), \
-                                        selection.Position ( self.acceptor ), \
-                                        Clone ( self.weights ) , Clone ( self.groups ) , Clone ( self.rsw ), Clone ( self.dsw ) ), \
-                                        Clone ( self.energyModel ) )
+            pruned = self.__class__.WithOptions ( donor       = selection.Position ( self.donor ), \
+                                                 acceptor    = selection.Position ( self.acceptor ), \
+                                                 weights     = Clone ( self.weights ), \
+                                                 groups      = Clone ( self.groups ), \
+                                                 rsw         = Clone ( self.rsw ), \
+                                                 dsw         = Clone ( self.dsw ), \
+                                                 energyModel = Clone ( self.energyModel ) )
         return pruned
 
 
