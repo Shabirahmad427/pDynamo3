@@ -103,16 +103,48 @@ class Graph ( AttributableObject ):
 
     def MakeSubgraph ( self, nodes, induced = True ):
         """Generate a subgraph with the selected nodes."""
+        # . Only the edges adjacent to the selected nodes are examined, instead of
+        #   every edge of the graph. The subgraph is identical to a full scan,
+        #   including node and edge order. This matters for large solvated
+        #   systems, where connectivity completion calls this once per ring set
+        #   (every TIP3P water is a 3-ring) and a full scan scales as N^2.
         pruned = self.__class__ ( )
         if len ( nodes ) > 0:
+            nodeSet = self._CachedNodeSet ( )
             for node in nodes:
-                if node in self.nodes: pruned.AddNode ( node )
+                if ( node in nodeSet ) or ( node in self.nodes ): pruned.AddNode ( node )
                 else: raise GraphError ( "Node not present in graph." )
             if induced:
-                    for edge in self.edges:
-                        if ( edge.node1 in nodes ) and ( edge.node2 in nodes ):
-                            pruned.AddEdge ( edge )
+                selected   = nodes if isinstance ( nodes, ( set, frozenset ) ) else set ( nodes )
+                candidates = set ( )
+                for node in selected:
+                    for edge in self.adjacentEdges.get ( node, () ):
+                        if ( edge.node1 in selected ) and ( edge.node2 in selected ):
+                            candidates.add ( edge )
+                for edge in sorted ( candidates, key = self._EdgePosition ):
+                    pruned.AddEdge ( edge )
         return pruned
+
+    def _CachedNodeSet ( self ):
+        """A set of the graph's nodes, rebuilt when the node list changes."""
+        key   = ( id ( self.nodes ), len ( self.nodes ) )
+        cache = self.__dict__.get ( "_nodeSetCache", None )
+        if ( cache is None ) or ( cache[0] != key ):
+            cache = ( key, set ( self.nodes ) )
+            self.__dict__["_nodeSetCache"] = cache
+        return cache[1]
+
+    def _EdgePosition ( self, edge ):
+        """The position of an edge in self.edges, via a cache that is rebuilt
+        whenever it no longer points back to the same edge."""
+        cache = self.__dict__.get ( "_edgeIndexCache", None )
+        if cache is not None:
+            index = cache.get ( edge, None )
+            if ( index is not None ) and ( index < len ( self.edges ) ) and ( self.edges[index] is edge ):
+                return index
+        cache = { e : i for ( i, e ) in enumerate ( self.edges ) }
+        self.__dict__["_edgeIndexCache"] = cache
+        return cache[edge]
 
     def MinimumEdgeWeight ( self ):
         """Return the minimum edge weight."""
