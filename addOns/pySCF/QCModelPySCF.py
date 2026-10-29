@@ -266,6 +266,11 @@ class QCModelPySCF ( QCModel ):
         if self.pyscf is None: self._CheckOptions ( )
         state           = getattr ( target, self.__class__._stateName )
         method          = self.method.upper ( )
+        if self.useGPU and ( getattr ( target, "symmetry", None ) is not None or
+                             getattr ( target, "symmetryParameters", None ) is not None ):
+            raise QCModelError ( "GPU4PySCF supports molecular calculations only; periodic boundary conditions are not implemented." )
+        if self.useGPU and target.electronicState.isSpinRestricted and target.electronicState.multiplicity != 1:
+            raise QCModelError ( "GPU4PySCF restricted open-shell calculations are not supported. Select Unrestricted spin mode." )
         xc              = None
         if 'KS' in method: xc = self.functional
         doGradients     = target.scratch.doGradients
