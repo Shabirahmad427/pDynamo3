@@ -258,8 +258,12 @@ class QCModelXTB ( QCModel ):
         #.gradients
         args += [ "--grad" ]
 
-        # adding inputfile and coordinates
-        args += [ "--input", state.paths["Input"], state.paths["Coord"] ]
+        # Add the input file only when it contains options.  For pure-QM jobs
+        # the generated file is empty, and xTB can hang while parsing it.
+        inputPath = state.paths["Input"]
+        if os.path.getsize ( inputPath ) > 0:
+            args += [ "--input", inputPath ]
+        args.append ( state.paths["Coord"] )
 
         # Run xtb inside the scratch folder via cwd (no os.chdir of the parent
         # process), sending stdout -- what used to be the shell '> XTBJob.log'
